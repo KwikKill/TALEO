@@ -1,6 +1,7 @@
 # imports
 import spacy
 import json
+from tqdm import tqdm
 
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
@@ -34,14 +35,24 @@ with open(file, "r") as f:
                     data[doc_id]["abstract"] += " "
                 data[doc_id]["abstract"] += line.strip()
 
-# For each article, split the abstract into words
-for doc_id in data:
-    data[doc_id]["abstract"] = data[doc_id]["title"].split() + data[doc_id]["abstract"].split()
+for doc_id in tqdm(data):
+    # For each article, Add the title to the abstract
+    data[doc_id]["abstract"] = data[doc_id]["title"] + " " + data[doc_id]["abstract"]
+    # For each article, Convert to lowercase
+    data[doc_id]["abstract"] = data[doc_id]["abstract"].lower()
+    # For each article, split the abstract into tokens with spacy
+    data[doc_id]["abstract"] = nlp(data[doc_id]["abstract"], disable=["parser", "ner"])
+    # For each article, Remove punctuation
+    data[doc_id]["abstract"] = [token.text for token in data[doc_id]["abstract"] if not token.is_punct and not token.is_space]
+    # For each article, Remove stopwords
+    data[doc_id]["abstract"] = [word for word in data[doc_id]["abstract"] if not word in nlp.Defaults.stop_words]
+
+print(data[1])
 
 # Create an index
 index = {}
 
-for doc_id in data:
+for doc_id in tqdm(data):
     for word in data[doc_id]["abstract"]:
         if word not in index:
             index[word] = {}
