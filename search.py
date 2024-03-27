@@ -1,9 +1,13 @@
 # imports
 import spacy
 import json
+from tqdm import tqdm
 
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
+
+# Constants
+THRESHOLD = 0.2
 
 # read index file "ouput/index.json" and create a list of dictionaries
 index = {
@@ -47,14 +51,23 @@ with open(file, "r") as f:
                     query_data[doc_id]["text"] += " "
                 query_data[doc_id]["text"] += line.strip()
 
-# For each article, split the abstract into words
-for doc_id in query_data:
+for doc_id in tqdm(query_data):
+    # For each article, split the abstract into words
     query_data[doc_id]["text"] = \
-        query_data[doc_id]["title"].split() +\
-        query_data[doc_id]["author"].split() +\
-        query_data[doc_id]["journal"].split() +\
-        query_data[doc_id]["volume"].split() +\
-        query_data[doc_id]["text"].split()
+        query_data[doc_id]["title"] +\
+        query_data[doc_id]["author"] +\
+        query_data[doc_id]["journal"] +\
+        query_data[doc_id]["volume"] +\
+        query_data[doc_id]["text"]
+    
+    # For each article, Convert to lowercase
+    query_data[doc_id]["text"] = query_data[doc_id]["text"].lower()
+    # For each article, split the abstract into tokens with spacy
+    query_data[doc_id]["text"] = nlp(query_data[doc_id]["text"], disable=["parser", "ner"])
+    # For each article, Remove punctuation
+    query_data[doc_id]["text"] = [token.text for token in query_data[doc_id]["text"] if not token.is_punct and not token.is_space]
+    # For each article, Remove stopwords
+    query_data[doc_id]["text"] = [word for word in query_data[doc_id]["text"] if not word in nlp.Defaults.stop_words]
 
 # For each query, compute the cosine similarity with each document
 for query_id in query_data:
@@ -72,9 +85,14 @@ for query_id in query_data:
 for query_id in query_data:
     query_data[query_id]["scores"] = sorted(query_data[query_id]["scores"].items(), key=lambda x: x[1], reverse=True)
 
-# For each query, print the top 5 documents
+output = ""
+output_file = "output/query_results"
+
 for query_id in query_data:
-    print("Query:", query_id)
-    for doc_id, score in query_data[query_id]["scores"][:5]:
-        print("Document:", doc_id, "Score:", score)
-    print()
+    for doc_id, score in query_data[query_id]["scores"]:
+        if score < THRESHOLD:
+            break
+        output += f"{query_id} {doc_id} {score}\n"
+
+with open(output_file, "w") as f:
+    f.write(output)
