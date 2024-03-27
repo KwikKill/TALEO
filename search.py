@@ -7,30 +7,10 @@ nlp = spacy.load('en_core_web_md')
 
 # read index file "ouput/index.json" and create a list of dictionaries
 index = {
-    "the": {
-        1: 0.6,
-        27: 0.4,
-        3: 0.3,
-    },
-    "cat": {
-        1: 0.4,
-        2: 0.3,
-        3: 0.2,
-    },
-    "dog": {
-        1: 0.3,
-        29: 0.2,
-        3: 0.1,
-    },
-    "database": {
-        1: 0.2,
-        22: 0.1,
-        33: 0.7,
-    },
 }
-#file = "output/index.json"
-#with open(file, "r") as f:
-#    index = json.load(f)
+file = "output/index.json"
+with open(file, "r") as f:
+    index = json.load(f)
 
 query_data = {}
 # read file "example/CISI_dev.QRY" and create a list of dictionaries

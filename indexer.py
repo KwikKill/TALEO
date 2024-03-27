@@ -1,5 +1,6 @@
 # imports
 import spacy
+import json
 
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
@@ -37,4 +38,24 @@ with open(file, "r") as f:
 for doc_id in data:
     data[doc_id]["abstract"] = data[doc_id]["title"].split() + data[doc_id]["abstract"].split()
 
-print(data[1])
+# Create an index
+index = {}
+
+for doc_id in data:
+    for word in data[doc_id]["abstract"]:
+        if word not in index:
+            index[word] = {}
+        if doc_id not in index[word]:
+            index[word][doc_id] = 1
+        else:
+            index[word][doc_id] += 1
+
+# Normalize the index
+for word in index:
+    for doc_id in index[word]:
+        index[word][doc_id] /= len(data[doc_id]["abstract"])
+
+# Save the index to a file
+file = "output/index.json"
+with open(file, "w") as f:
+    json.dump(index, f, indent=4)
