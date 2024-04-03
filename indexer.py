@@ -1,6 +1,7 @@
 # imports
 import spacy
 import json
+import math
 from tqdm import tqdm
 
 # Configure Spacy
@@ -10,7 +11,7 @@ nlp = spacy.load('en_core_web_md')
 
 data = {}
 
-file = "input/CISI.ALLnettoye"
+file = "CISI.ALLnettoye"
 with open(file, "r") as f:
     state = 0
     while True:
@@ -57,15 +58,40 @@ for doc_id in tqdm(data):
         if word not in index:
             index[word] = {}
         if doc_id not in index[word]:
-            index[word][doc_id] = 1
+            index[word][doc_id]["tf"] = 1
         else:
-            index[word][doc_id] += 1
+            index[word][doc_id]["tf"] += 1
 
 # Normalize the index
 for word in index:
     for doc_id in index[word]:
-        index[word][doc_id] /= len(data[doc_id]["abstract"])
+        index[word][doc_id]["tf"] /= len(data[doc_id]["abstract"])
 
+# IDF
+
+nb_doc = 0
+for doc_id in data :
+    nb_doc += 1
+for word in index :
+    nb_doc_by_word = 0
+    for doc_id in index[word]:
+        nb_doc_by_word += 1
+    index[word]["idf"] = math.log(nb_doc/nb_doc_by_word, 10)
+
+# association d'un poids 
+    
+for word in index:
+    for doc_id in index[word]:
+        index[word][doc_id]["weight"] = index[word][doc_id]["tf"]*index[word]["idf"]
+
+# nettoyer index
+        
+THRESHOLD = 0.1
+for word in index :
+    for doc_id in index[word] : 
+        if index[word][doc_id]["weight"] < THRESHOLD :
+            index[word].splice(doc_id)
+    
 # Save the index to a file
 file = "output/index.json"
 with open(file, "w") as f:
