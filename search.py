@@ -6,9 +6,6 @@ from tqdm import tqdm
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
 
-# Constants
-THRESHOLD = 0.2
-
 # read index file "ouput/index.json" and create a list of dictionaries
 index = {
 }
@@ -76,9 +73,10 @@ for query_id in query_data:
     for term in query:
         if term in index:
             for doc_id in index[term]:
-                if doc_id not in scores:
-                    scores[doc_id] = 0
-                scores[doc_id] += index[term][doc_id]
+                if doc_id != "idf":
+                    if doc_id not in scores:
+                        scores[doc_id] = 0
+                    scores[doc_id] += index[term][doc_id]["weight"]
     query_data[query_id]["scores"] = scores
 
 # For each query, sort the documents by score
@@ -90,8 +88,6 @@ output_file = "output/query_results"
 
 for query_id in query_data:
     for doc_id, score in query_data[query_id]["scores"]:
-        if score < THRESHOLD:
-            break
         output += f"{query_id} {doc_id} {score}\n"
 
 with open(output_file, "w") as f:
