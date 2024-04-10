@@ -8,10 +8,8 @@ from tqdm import tqdm
 nlp = spacy.load('en_core_web_md')
 
 # read file "CISI.ALLnettoye" and create a list of dictionaries
-
 data = {}
-
-file = "CISI.ALLnettoye"
+file = "input/CISI.ALLnettoye"
 with open(file, "r") as f:
     state = 0
     while True:
@@ -58,6 +56,7 @@ for doc_id in tqdm(data):
         if word not in index:
             index[word] = {}
         if doc_id not in index[word]:
+            index[word][doc_id] = {}
             index[word][doc_id]["tf"] = 1
         else:
             index[word][doc_id]["tf"] += 1
@@ -69,30 +68,31 @@ for word in index:
 
 # IDF
 
-nb_doc = 0
-for doc_id in data :
-    nb_doc += 1
-for word in index :
-    nb_doc_by_word = 0
-    for doc_id in index[word]:
-        nb_doc_by_word += 1
-    index[word]["idf"] = math.log(nb_doc/nb_doc_by_word, 10)
+for word in index:
+    index[word]["idf"] = math.log10(len(data) / len(index[word]))
 
 # association d'un poids 
     
 for word in index:
     for doc_id in index[word]:
-        index[word][doc_id]["weight"] = index[word][doc_id]["tf"]*index[word]["idf"]
+        if doc_id != "idf":
+            index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
 
 # nettoyer index
-        
-THRESHOLD = 0.1
+
+index2 = {}
+
+THRESHOLD = 0.0
 for word in index :
     for doc_id in index[word] : 
-        if index[word][doc_id]["weight"] < THRESHOLD :
-            index[word].splice(doc_id)
+        if doc_id != "idf" and index[word][doc_id]["weight"] < THRESHOLD :
+            continue
+        else :
+            if word not in index2 :
+                index2[word] = {}
+            index2[word][doc_id] = index[word][doc_id]
     
 # Save the index to a file
 file = "output/index.json"
 with open(file, "w") as f:
-    json.dump(index, f, indent=4)
+    json.dump(index2, f, indent=4)
