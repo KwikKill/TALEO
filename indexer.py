@@ -7,6 +7,8 @@ from tqdm import tqdm
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
 
+MEDIAN_PERCENTAGE = 0.1
+
 # read file "CISI.ALLnettoye" and create a list of dictionaries
 data = {}
 file = "input/CISI.ALLnettoye"
@@ -78,11 +80,19 @@ for word in index:
         if doc_id != "idf":
             index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
 
+# get the median at 10% of the weight
+weights = []
+for word in index:
+    for doc_id in index[word]:
+        if doc_id != "idf":
+            weights.append(index[word][doc_id]["weight"])
+weights.sort()
+
 # nettoyer index
 
 index2 = {}
 
-THRESHOLD = 0.0
+THRESHOLD = weights[int(len(weights) * MEDIAN_PERCENTAGE)]
 for word in index :
     for doc_id in index[word] : 
         if doc_id != "idf" and index[word][doc_id]["weight"] < THRESHOLD :
