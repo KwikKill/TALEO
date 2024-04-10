@@ -7,7 +7,7 @@ from tqdm import tqdm
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
 
-MEDIAN_PERCENTAGE = 0.1
+MEDIAN_PERCENTAGE = 0.9
 
 # read file "CISI.ALLnettoye" and create a list of dictionaries
 data = {}
