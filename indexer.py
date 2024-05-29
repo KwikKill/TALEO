@@ -11,14 +11,23 @@ nlp = spacy.load('en_core_web_md')
 # Parse command-line arguments
 parser = argparse.ArgumentParser()
 # Add method argument to choose the indexing method (TF IDF or BM25)
-parser.add_argument("--method", choices=["tfidf", "bm25"], default="tfidf", help="Choose the indexing method (TF IDF or BM25)")
+parser.add_argument("--method", choices=["tfidf", "bm25", "dirichlet", "jelinek_mercer"], default="tfidf", help="Choose the indexing method (TF IDF or BM25)")
 # If BM25 is chosen, add K and B arguments
 parser.add_argument("--k", type=float, default=2.2, help="BM25 parameter K")
 parser.add_argument("--b", type=float, default=0.75, help="BM25 parameter B")
+# If Dirichlet is chosen, add MU argument
+parser.add_argument("--mu", type=float, default=2000, help="Dirichlet parameter MU")
+# If Jelinek-Mercer is chosen, add LAMBDA argument
+parser.add_argument("--lamb", type=float, default=0.1, help="Jelinek-Mercer parameter LAMBDA")
 args = parser.parse_args()
 
+# BM25 parameters
 BM_K = args.k
 BM_B = args.b
+# Dirichlet parameter
+MU = args.mu
+# Jelinek-Mercer parameter
+LAMBDA = args.lamb
 
 # read file "CISI.ALLnettoye" and create a list of dictionaries
 data = {}
@@ -85,7 +94,6 @@ for word in index:
         index[word][doc_id]["tf"] /= len(data[doc_id]["abstract"])
 
 # IDF
-
 for word in index:
     index[word]["idf"] = math.log10(len(data) / len(index[word]))
 
@@ -97,6 +105,10 @@ for word in index:
                 index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
             elif args.method == "bm25":
                 index[word][doc_id]["weight"] = (index[word][doc_id]["tf"] * (BM_K + 1)) / (index[word][doc_id]["tf"] + BM_K * (1 - BM_B + BM_B * len(data[doc_id]["abstract"]) / 100))
+            elif args.method == "dirichlet":
+                index[word][doc_id]["weight"] = (index[word][doc_id]["tf"] + MU * index[word]["idf"]) / (len(data[doc_id]["abstract"]) + MU)
+            elif args.method == "jelinek_mercer":
+                index[word][doc_id]["weight"] = (1 - LAMBDA) * (index[word][doc_id]["tf"] / len(data[doc_id]["abstract"])) + LAMBDA * index[word]["idf"]
 
 # get the median at 10% of the weight
 #weights = []
