@@ -8,12 +8,17 @@ import argparse
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
 
-
 # Parse command-line arguments
 parser = argparse.ArgumentParser()
 # Add method argument to choose the indexing method (TF IDF or BM25)
 parser.add_argument("--method", choices=["tfidf", "bm25"], default="tfidf", help="Choose the indexing method (TF IDF or BM25)")
+# If BM25 is chosen, add K and B arguments
+parser.add_argument("--k", type=float, default=2.2, help="BM25 parameter K")
+parser.add_argument("--b", type=float, default=0.75, help="BM25 parameter B")
 args = parser.parse_args()
+
+BM_K = args.k
+BM_B = args.b
 
 # read file "CISI.ALLnettoye" and create a list of dictionaries
 data = {}
@@ -55,7 +60,7 @@ for doc_id in tqdm(data):
 abstracts = [doc["abstract"] for doc in data.values()]
 processed_abstracts = list(nlp.pipe(abstracts, disable=["parser", "ner"]))
 
-for doc_id, doc in zip(data.keys(), processed_abstracts):
+for doc_id, doc in tqdm(zip(data.keys(), processed_abstracts)):
     # For each article, Remove punctuation, stopwords, and lemmatize
     data[doc_id]["abstract"] = [token.lemma_ for token in doc if not token.is_punct and not token.is_space and token.text not in stopwords]
 
@@ -91,7 +96,7 @@ for word in index:
             if args.method == "tfidf":
                 index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
             elif args.method == "bm25":
-                index[word][doc_id]["weight"] = (index[word][doc_id]["tf"] * (2.2 + 1)) / (index[word][doc_id]["tf"] + 2.2 * (1 - 0.75 + 0.75 * len(data[doc_id]["abstract"]) / 100))
+                index[word][doc_id]["weight"] = (index[word][doc_id]["tf"] * (BM_K + 1)) / (index[word][doc_id]["tf"] + BM_K * (1 - BM_B + BM_B * len(data[doc_id]["abstract"]) / 100))
 
 # get the median at 10% of the weight
 #weights = []
