@@ -3,11 +3,17 @@ import spacy
 import json
 import math
 from tqdm import tqdm
+import argparse
 
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
 
-MEDIAN_PERCENTAGE = 0.9
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser()
+# Add method argument to choose the indexing method (TF IDF or BM25)
+parser.add_argument("--method", choices=["tfidf", "bm25"], default="tfidf", help="Choose the indexing method (TF IDF or BM25)")
+args = parser.parse_args()
 
 # read file "CISI.ALLnettoye" and create a list of dictionaries
 data = {}
@@ -36,17 +42,22 @@ with open(file, "r") as f:
                     data[doc_id]["abstract"] += " "
                 data[doc_id]["abstract"] += line.strip()
 
+# Precompile stopwords set
+stopwords = set(nlp.Defaults.stop_words)
+
 for doc_id in tqdm(data):
     # For each article, Add the title to the abstract
     data[doc_id]["abstract"] = data[doc_id]["title"] + " " + data[doc_id]["abstract"]
     # For each article, Convert to lowercase
     data[doc_id]["abstract"] = data[doc_id]["abstract"].lower()
-    # For each article, split the abstract into tokens with spacy
-    data[doc_id]["abstract"] = nlp(data[doc_id]["abstract"], disable=["parser", "ner"])
-    # For each article, Remove punctuation
-    data[doc_id]["abstract"] = [token.text for token in data[doc_id]["abstract"] if not token.is_punct and not token.is_space]
-    # For each article, Remove stopwords
-    data[doc_id]["abstract"] = [word for word in data[doc_id]["abstract"] if not word in nlp.Defaults.stop_words]
+
+# Batch process texts with SpaCy
+abstracts = [doc["abstract"] for doc in data.values()]
+processed_abstracts = list(nlp.pipe(abstracts, disable=["parser", "ner"]))
+
+for doc_id, doc in zip(data.keys(), processed_abstracts):
+    # For each article, Remove punctuation, stopwords, and lemmatize
+    data[doc_id]["abstract"] = [token.lemma_ for token in doc if not token.is_punct and not token.is_space and token.text not in stopwords]
 
 print(data[1])
 
@@ -73,36 +84,51 @@ for word in index:
 for word in index:
     index[word]["idf"] = math.log10(len(data) / len(index[word]))
 
-# association d'un poids 
-    
+# association d'un poids (BM25 ou TFIDF) à chaque mot
 for word in index:
     for doc_id in index[word]:
         if doc_id != "idf":
-            index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
+            if args.method == "tfidf":
+                index[word][doc_id]["weight"] = index[word][doc_id]["tf"] * index[word]["idf"]
+            elif args.method == "bm25":
+                index[word][doc_id]["weight"] = (index[word][doc_id]["tf"] * (2.2 + 1)) / (index[word][doc_id]["tf"] + 2.2 * (1 - 0.75 + 0.75 * len(data[doc_id]["abstract"]) / 100))
 
 # get the median at 10% of the weight
-weights = []
-for word in index:
-    for doc_id in index[word]:
-        if doc_id != "idf":
-            weights.append(index[word][doc_id]["weight"])
-weights.sort()
+#weights = []
+#for word in index:
+#    for doc_id in index[word]:
+#        if doc_id != "idf":
+#            weights.append(index[word][doc_id]["weight"])
+#weights.sort()
 
 # nettoyer index
 
 index2 = {}
 
-THRESHOLD = weights[int(len(weights) * MEDIAN_PERCENTAGE)]
-for word in index :
-    for doc_id in index[word] : 
-        if doc_id != "idf" and index[word][doc_id]["weight"] < THRESHOLD :
-            continue
-        else :
-            if word not in index2 :
-                index2[word] = {}
-            index2[word][doc_id] = index[word][doc_id]
-    
+#THRESHOLD = weights[int(len(weights) * MEDIAN_PERCENTAGE)]
+#for word in index :
+#    for doc_id in index[word] : 
+        #if doc_id != "idf" and index[word][doc_id]["weight"] < THRESHOLD :
+        #    continue
+        #else :
+#        if word not in index2 :
+#            index2[word] = {}
+#        index2[word][doc_id] = index[word][doc_id]    
+
+# For each document, compute the norm of the vector
+#index2 = {}
+
+#for word in index:
+#    for doc_id in index[word]:
+#        if doc_id != "idf":
+#            if doc_id not in index2:
+#                index2[doc_id] = 0
+#            index2[doc_id] += index[word][doc_id]["weight"] ** 2
+
+#for doc_id in index2:
+#    index2[doc_id] = math.sqrt(index2[doc_id])
+
 # Save the index to a file
 file = "output/index.json"
 with open(file, "w") as f:
-    json.dump(index2, f, indent=4)
+    json.dump(index, f, indent=4)
