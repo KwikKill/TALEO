@@ -20,7 +20,7 @@ nlp = spacy.load('en_core_web_md')
 parser = argparse.ArgumentParser()
 # Add limit argument to choose the number of documents to retrieve or the minimum score (mutually exclusive)
 group = parser.add_mutually_exclusive_group(required=True)
-parser.add_argument("--method", choices=["cosine", "pearson", "jensenshannon"], default="cosine",
+parser.add_argument("--method", choices=["cosine", "pearson", "jensenshannon", "manhattan"], default="cosine",
                     help="Choose how to calculate similarities between vectors")
 
 group.add_argument("--limit", type=int, help="Choose the number of documents to retrieve")
@@ -35,7 +35,7 @@ with open(file, "r") as f:
 
 query_data = {}
 # read file "example/CISI_dev.QRY" and create a list of dictionaries
-file = "example/CISI_dev.QRY"
+file = "example/CISI_final.QRY"
 with open(file, "r") as f:
     state = 0
     while True:
@@ -113,6 +113,8 @@ for query_id in query_data:
                 scores[doc_id] = pearsonr(doc_vector, query_vector)[0]
             elif args.method == "jensenshannon":
                 scores[doc_id] = jensenshannon(doc_vector, query_vector)
+            elif args.method == "manhattan":
+                scores[doc_id] = sum(abs(a - b) for a, b in zip(query_vector, doc_vector))
         else:
             scores[doc_id] = 0
     query_data[query_id]["scores"] = scores

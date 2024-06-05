@@ -112,41 +112,6 @@ for word in index:
             elif args.method == "absolute_discounting":
                 index[word][doc_id]["weight"] = max(index[word][doc_id]["tf"] - 0.5, 0) / len(data[doc_id]["abstract"]) + 0.5 * len(data[doc_id]["abstract"]) / len(data[doc_id]["abstract"]) * index[word]["idf"]
 
-# get the median at 10% of the weight
-#weights = []
-#for word in index:
-#    for doc_id in index[word]:
-#        if doc_id != "idf":
-#            weights.append(index[word][doc_id]["weight"])
-#weights.sort()
-
-# nettoyer index
-
-index2 = {}
-
-#THRESHOLD = weights[int(len(weights) * MEDIAN_PERCENTAGE)]
-#for word in index :
-#    for doc_id in index[word] : 
-        #if doc_id != "idf" and index[word][doc_id]["weight"] < THRESHOLD :
-        #    continue
-        #else :
-#        if word not in index2 :
-#            index2[word] = {}
-#        index2[word][doc_id] = index[word][doc_id]    
-
-# For each document, compute the norm of the vector
-#index2 = {}
-
-#for word in index:
-#    for doc_id in index[word]:
-#        if doc_id != "idf":
-#            if doc_id not in index2:
-#                index2[doc_id] = 0
-#            index2[doc_id] += index[word][doc_id]["weight"] ** 2
-
-#for doc_id in index2:
-#    index2[doc_id] = math.sqrt(index2[doc_id])
-
 # Save the index to a file
 file = "output/index.json"
 with open(file, "w") as f:

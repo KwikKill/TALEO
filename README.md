@@ -15,6 +15,9 @@ This project is a simple search engine for documents made for a INSA Rennes prac
     ```
     python3 indexer.py --method bm25 --k 10 --b 0.1
     python3 indexer.py --method tfidf
+    python3 indexer.py --method dirichlet --mu 2000
+    python3 indexer.py --method jelinek_mercer --lambda 0.7
+    python3 indexer.py --method absolute_discounting --delta 0.7
     ```
 
 2. Searching :
@@ -26,8 +29,11 @@ This project is a simple search engine for documents made for a INSA Rennes prac
     - Like indexer.py, you can specify a method to check vector similarities, using cosine by default
     - Optionally, you can specify the the filtering method to use for searching and it's options if needed. 
     ```
-    python3 search.py indexer.py --score 0.4
-    python3 search.py indexer.py --limit 10
+    python3 search.py --method cosine --score 0.4
+    python3 search.py --method pearson
+    python3 search.py --method euclidean
+    python3 search.py --method jensenshannon
+    python3 search.py --method manhattan
     ```
 
 3. Evaluation :
@@ -39,11 +45,12 @@ This project is a simple search engine for documents made for a INSA Rennes prac
 4. Best Result :
    - For now, best result is obtained by using :
    ```
-   python3 indexer.py
-   python3 search.py indexer.py --score 0.4
-   python3 eval.py example/CISI_dev.REL output/query_results
+   indexer : dirichlet, MU = 2000 | search : cosine, 0.41 (22.5%)
+   indexer : jelinek_mercer, lambda = 0.1 | search : cosine, 0.41 (22.5%)
+   indexer : jelinek_mercer, lambda = 0.01 | search : cosine 0.41 (22.6%)
+   indexer : absolute_discounting | search : cosine, 0.415 (22.6%)
    ```
-   - We use TF.IDF for `indexer.py` and Cosine for `search.py`, they are set by default, only the threshold of 0.415 is needed for `search.py` (isn't set by default)
+   Those results are obtained on the 
 ## Authors
 
 - [KwikKill](https://github.com/KwikKill)
