@@ -5,11 +5,13 @@ This script is a simple search engine that uses the inverted index created by th
 # imports
 import spacy
 import json
+
+from scipy.spatial.distance import jensenshannon
 from tqdm import tqdm
 import argparse
 from numpy.linalg import norm
 from numpy import dot
-
+from scipy.stats import pearsonr
 
 # Configure Spacy
 nlp = spacy.load('en_core_web_md')
@@ -18,8 +20,11 @@ nlp = spacy.load('en_core_web_md')
 parser = argparse.ArgumentParser()
 # Add limit argument to choose the number of documents to retrieve or the minimum score (mutually exclusive)
 group = parser.add_mutually_exclusive_group(required=True)
+parser.add_argument("--method", choices=["cosine", "pearson", "jensenshannon"], default="cosine",
+                    help="Choose how to calculate similarities between vectors")
+
 group.add_argument("--limit", type=int, help="Choose the number of documents to retrieve")
-group.add_argument("--score", type=float, help="Choose the minimum score to retrieve")
+group.add_argument("--score", type=float, default=0, help="Choose the minimum score to retrieve")
 args = parser.parse_args()
 
 # read index file "ouput/index.json" and create a list of dictionaries
@@ -69,12 +74,12 @@ stopwords = set(nlp.Defaults.stop_words)
 for doc_id in tqdm(query_data):
     # For each article, concatenate the title, author, journal, volume, and text
     query_data[doc_id]["text"] = \
-        query_data[doc_id]["title"] +\
-        query_data[doc_id]["author"] +\
-        query_data[doc_id]["journal"] +\
-        query_data[doc_id]["volume"] +\
+        query_data[doc_id]["title"] + \
+        query_data[doc_id]["author"] + \
+        query_data[doc_id]["journal"] + \
+        query_data[doc_id]["volume"] + \
         query_data[doc_id]["text"]
-    
+
     # For each article, Convert to lowercase
     query_data[doc_id]["text"] = query_data[doc_id]["text"].lower()
 
@@ -84,7 +89,8 @@ processed_texts = list(nlp.pipe(texts, disable=["parser", "ner"]))
 
 for doc_id, doc in zip(query_data.keys(), processed_texts):
     # For each article, Remove punctuation, stopwords, and lemmatize
-    query_data[doc_id]["text"] = [token.lemma_ for token in doc if not token.is_punct and not token.is_space and token.text not in stopwords]
+    query_data[doc_id]["text"] = [token.lemma_ for token in doc if
+                                  not token.is_punct and not token.is_space and token.text not in stopwords]
 
 # Get the list of document IDs (except "idf")
 docs_ids = []
@@ -101,7 +107,12 @@ for query_id in query_data:
     for doc_id in docs_ids:
         doc_vector = [index[term][doc_id]["weight"] if term in index and doc_id in index[term] else 0 for term in query]
         if norm(query_vector) > 0 and norm(doc_vector) > 0:
-            scores[doc_id] = dot(query_vector, doc_vector) / (norm(query_vector) * norm(doc_vector))
+            if args.method == "cosine":
+                scores[doc_id] = dot(query_vector, doc_vector) / (norm(query_vector) * norm(doc_vector))
+            elif args.method == "pearson":
+                scores[doc_id] = pearsonr(doc_vector, query_vector)[0]
+            elif args.method == "jensenshannon":
+                scores[doc_id] = jensenshannon(doc_vector, query_vector)
         else:
             scores[doc_id] = 0
     query_data[query_id]["scores"] = scores
@@ -119,7 +130,8 @@ if args.limit:
         query_data[query_id]["scores"] = query_data[query_id]["scores"][:args.limit]
 else:
     for query_id in query_data:
-        query_data[query_id]["scores"] = [(doc_id, score) for doc_id, score in query_data[query_id]["scores"] if score >= args.score]
+        query_data[query_id]["scores"] = [(doc_id, score) for doc_id, score in query_data[query_id]["scores"] if
+                                          score >= args.score]
 
 for query_id in query_data:
     for doc_id, score in query_data[query_id]["scores"]:

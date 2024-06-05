@@ -23,6 +23,7 @@ This project is a simple search engine for documents made for a INSA Rennes prac
     python3 search.py
     ```
     - The search results will be stored in the `output/query_results` file.
+    - Like indexer.py, you can specify a method to check vector similarities, using cosine by default
     - Optionally, you can specify the the filtering method to use for searching and it's options if needed. 
     ```
     python3 search.py indexer.py --score 0.4
@@ -34,6 +35,15 @@ This project is a simple search engine for documents made for a INSA Rennes prac
     ```
     python3 eval.py example/CISI_dev.REL output/query_results
     ```
+
+4. Best Result :
+   - For now, best result is obtained by using :
+   ```
+   python3 indexer.py
+   python3 search.py indexer.py --score 0.4
+   python3 eval.py example/CISI_dev.REL output/query_results
+   ```
+   - We use TF.IDF for `indexer.py` and Cosine for `search.py`, they are set by default, only the threshold of 0.415 is needed for `search.py` (isn't set by default)
 ## Authors
 
 - [KwikKill](https://github.com/KwikKill)
